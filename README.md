@@ -1,2 +1,1 @@
-# XSC-NEAR-ICP-SHARD
-Cross-Chain-Swaps NEAR/ICP and SHARD/ICP
+# Cross-Chain-Swaps NEAR/ICP and SHARD/ICP
