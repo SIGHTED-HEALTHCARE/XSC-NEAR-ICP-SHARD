@@ -1,0 +1,57 @@
+import Nat "mo:base/Nat";
+import Principal "mo:base/Principal";
+import Trie "mo:base/Trie";
+
+actor XSC {
+  stable var balancesICP: Trie.Trie<Principal, Nat> = Trie.empty();
+  stable var balancesSHARD: Trie.Trie<Principal, Nat> = Trie.empty();
+
+  /// Deposit tokens into the ICP balance
+  public func depositICP(to: Principal, amount: Nat): async Bool {
+    let currentBalance = Trie.get(balancesICP, to) ?: 0;
+    balancesICP := Trie.put(balancesICP, to, currentBalance + amount);
+    return true;
+  };
+
+  /// Cross-chain swap: ICP to Calimero SHARD
+  public func swapToCalimero(user: Principal, amount: Nat): async Bool {
+    let currentICPBalance = Trie.get(balancesICP, user) ?: 0;
+
+    if (currentICPBalance < amount) {
+      return false;  // Insufficient ICP balance
+    };
+
+    // Deduct the amount from the ICP balance
+    balancesICP := Trie.put(balancesICP, user, currentICPBalance - amount);
+
+    // Add the equivalent amount to the Calimero shard balance
+    let currentSHARDBalance = Trie.get(balancesSHARD, user) ?: 0;
+    balancesSHARD := Trie.put(balancesSHARD, user, currentSHARDBalance + amount);
+    return true;
+  };
+
+  /// Cross-chain swap: Calimero SHARD to ICP
+  public func swapToICP(user: Principal, amount: Nat): async Bool {
+    let currentSHARDBalance = Trie.get(balancesSHARD, user) ?: 0;
+
+    if (currentSHARDBalance < amount) {
+      return false;  // Insufficient Calimero balance
+    };
+
+    // Deduct the amount from the Calimero shard balance
+    balancesSHARD := Trie.put(balancesSHARD, user, currentSHARDBalance - amount);
+
+    // Add the equivalent amount to the ICP balance
+    let currentICPBalance = Trie.get(balancesICP, user) ?: 0;
+    balancesICP := Trie.put(balancesICP, user, currentICPBalance + amount);
+    return true;
+  };
+
+  /// Query token balance for both ICP and Calimero SHARD
+  public query func balance(user: Principal): async { ICP: Nat; SHARD: Nat } {
+    return {
+      ICP = Trie.get(balancesICP, user) ?: 0;
+      SHARD = Trie.get(balancesSHARD, user) ?: 0;
+    };
+  };
+}
